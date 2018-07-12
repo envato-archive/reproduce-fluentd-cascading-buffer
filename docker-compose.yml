@@ -1,0 +1,48 @@
+version: '3'
+services:
+  fluentd:
+    build: .
+    depends_on:
+      - kinesis
+    links:
+      - kinesis
+    ports:
+      - "24224:24224"
+    environment:
+      - AWS_REGION=ap-nil-1
+      - AWS_DEFAULT_REGION=ap-nil-1
+      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  kinesis:
+    build:
+      context: ./kinesalite
+    expose:
+      - "4567"
+    volumes:
+      - "${PWD}/kinesalite:/app"
+    entrypoint: /app/entrypoint.sh
+    working_dir: /app
+    environment:
+      - AWS_DEFAULT_REGION=ap-nil-1
+      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  send_logs:
+    build:
+      context: ./send_logs
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: send.logs
+        fluentd-async-connect: "true"
+    depends_on:
+      - fluentd
+  receive_logs:
+    build:
+      context: ./receive_logs
+    links:
+      - kinesis
+    environment:
+      - AWS_DEFAULT_REGION=ap-nil-1
+      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
